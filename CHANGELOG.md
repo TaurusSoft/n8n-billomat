@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- The TypeScript build cache (`tsconfig.tsbuildinfo`) is no longer shipped. It was local
+  build state and made up nearly half of the unpacked package. Packed size drops from
+  104 kB to 44 kB, unpacked from 494 kB to 261 kB.
+- First release published from GitHub Actions with an npm provenance attestation.
+
 ## 0.1.0
 
 Initial release.
