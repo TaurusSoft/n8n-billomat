@@ -17,7 +17,7 @@ export class BillomatApi implements ICredentialType {
 		dark: 'file:../nodes/Billomat/billomat.dark.svg',
 	};
 
-	documentationUrl = 'https://github.com/martinhey/n8n-nodes-billomat?tab=readme-ov-file#credentials';
+	documentationUrl = 'https://github.com/TaurusSoft/n8n-billomat?tab=readme-ov-file#credentials';
 
 	properties: INodeProperties[] = [
 		{
