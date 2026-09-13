@@ -1,0 +1,375 @@
+import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
+
+import {
+	PAYMENT_TYPE_OPTIONS,
+	addressFieldOptions,
+	additionalFields,
+	bankFieldOptions,
+	filterFields,
+	idField,
+	orderByField,
+	paginationFields,
+	tagsFilterField,
+	taxIdFieldOptions,
+} from './SharedFields';
+
+const resource = 'client';
+
+/** Billomat lets each default be inherited from the account settings or overridden. */
+const DEFAULT_SOURCE_OPTIONS: INodePropertyOptions[] = [
+	{ name: 'Absolute', value: 'ABSOLUTE' },
+	{ name: 'Relative', value: 'RELATIVE' },
+	{ name: 'Settings', value: 'SETTINGS' },
+];
+
+export const clientOperations: INodeProperties[] = [
+	{
+		displayName: 'Operation',
+		name: 'operation',
+		type: 'options',
+		noDataExpression: true,
+		displayOptions: {
+			show: {
+				resource: [resource],
+			},
+		},
+		options: [
+			{
+				name: 'Create',
+				value: 'create',
+				description: 'Create a client',
+				action: 'Create a client',
+			},
+			{
+				name: 'Delete',
+				value: 'delete',
+				description: 'Delete a client, only possible while it has no documents',
+				action: 'Delete a client',
+			},
+			{
+				name: 'Get',
+				value: 'get',
+				description: 'Get a client',
+				action: 'Get a client',
+			},
+			{
+				name: 'Get Many',
+				value: 'getAll',
+				description: 'Get many clients',
+				action: 'Get many clients',
+			},
+			{
+				name: 'Get Own Account',
+				value: 'getMyself',
+				description: 'Get the data of your own Billomat account',
+				action: 'Get your own account',
+			},
+			{
+				name: 'Update',
+				value: 'update',
+				description: 'Update a client',
+				action: 'Update a client',
+			},
+		],
+		default: 'create',
+	},
+];
+
+const clientSpecificFieldOptions: INodeProperties[] = [
+	{
+		displayName: 'Archived',
+		name: 'archived',
+		type: 'boolean',
+		default: false,
+		description: 'Whether the client is archived rather than active',
+	},
+	{
+		displayName: 'Client Number',
+		name: 'number',
+		type: 'number',
+		default: 0,
+		description: 'Sequential client number. Defaults to the next free number.',
+	},
+	{
+		displayName: 'Client Number Length',
+		name: 'number_length',
+		type: 'number',
+		default: 0,
+		description: 'Minimum length of the client number, padded with leading zeros',
+	},
+	{
+		displayName: 'Client Number Prefix',
+		name: 'number_pre',
+		type: 'string',
+		default: '',
+		placeholder: 'KD',
+	},
+	{
+		displayName: 'Currency Code',
+		name: 'currency_code',
+		type: 'string',
+		default: '',
+		placeholder: 'EUR',
+		description: 'ISO currency code. Defaults to the account currency.',
+	},
+	{
+		displayName: 'Debitor Account Number',
+		name: 'debitor_account_number',
+		type: 'number',
+		default: 0,
+	},
+	{
+		displayName: 'Default Payment Types',
+		name: 'default_payment_types',
+		type: 'multiOptions',
+		options: PAYMENT_TYPE_OPTIONS,
+		default: [],
+		description: 'Payment types offered to this client. Defaults to the account settings.',
+	},
+	{
+		displayName: 'Discount Days',
+		name: 'discount_days',
+		type: 'number',
+		default: 0,
+		description: 'Discount period in days',
+	},
+	{
+		displayName: 'Discount Days Source',
+		name: 'discount_days_type',
+		type: 'options',
+		options: DEFAULT_SOURCE_OPTIONS,
+		default: 'SETTINGS',
+		description: 'Where the default discount period comes from',
+	},
+	{
+		displayName: 'Discount Rate',
+		name: 'discount_rate',
+		type: 'number',
+		default: 0,
+		description: 'Discount rate in percent',
+	},
+	{
+		displayName: 'Discount Rate Source',
+		name: 'discount_rate_type',
+		type: 'options',
+		options: DEFAULT_SOURCE_OPTIONS,
+		default: 'SETTINGS',
+		description: 'Where the default discount rate comes from',
+	},
+	{
+		displayName: 'Due Days',
+		name: 'due_days',
+		type: 'number',
+		default: 0,
+		description: 'Maturity in days from the invoice date',
+	},
+	{
+		displayName: 'Due Days Source',
+		name: 'due_days_type',
+		type: 'options',
+		options: DEFAULT_SOURCE_OPTIONS,
+		default: 'SETTINGS',
+		description: 'Where the default maturity comes from',
+	},
+	{
+		displayName: 'Dunning Run',
+		name: 'dunning_run',
+		type: 'boolean',
+		default: false,
+		description: 'Whether this client takes part in the automated dunning run',
+	},
+	{
+		displayName: 'Estimate Validity Days',
+		name: 'offer_validity_days',
+		type: 'number',
+		default: 0,
+		description: 'Validity of estimates in days',
+	},
+	{
+		displayName: 'Estimate Validity Days Source',
+		name: 'offer_validity_days_type',
+		type: 'options',
+		options: DEFAULT_SOURCE_OPTIONS,
+		default: 'SETTINGS',
+		description: 'Where the default estimate validity comes from',
+	},
+	{
+		displayName: 'Locale',
+		name: 'locale',
+		type: 'string',
+		default: '',
+		placeholder: 'de-DE',
+		description: 'Locale of the client. Defaults to the account locale.',
+	},
+	{
+		displayName: 'Net or Gross',
+		name: 'net_gross',
+		type: 'options',
+		options: [
+			{ name: 'Gross', value: 'GROSS' },
+			{ name: 'Net', value: 'NET' },
+			{ name: 'Settings', value: 'SETTINGS' },
+		],
+		default: 'SETTINGS',
+		description: 'Price basis used for this client',
+	},
+	{
+		displayName: 'Note',
+		name: 'note',
+		type: 'string',
+		typeOptions: { rows: 3 },
+		default: '',
+	},
+	{
+		displayName: 'Price Group',
+		name: 'price_group',
+		type: 'number',
+		default: 1,
+		description: 'Which of the article prices applies to this client',
+	},
+	{
+		displayName: 'Reduction',
+		name: 'reduction',
+		type: 'number',
+		default: 0,
+		description: 'Reduction in percent',
+	},
+	{
+		displayName: 'Reminder Due Days',
+		name: 'reminder_due_days',
+		type: 'number',
+		default: 0,
+	},
+	{
+		displayName: 'Reminder Due Days Source',
+		name: 'reminder_due_days_type',
+		type: 'options',
+		options: DEFAULT_SOURCE_OPTIONS,
+		default: 'SETTINGS',
+		description: 'Where the default reminder maturity comes from',
+	},
+	{
+		displayName: 'SEPA Mandate',
+		name: 'sepa_mandate',
+		type: 'string',
+		default: '',
+		description: 'Mandate reference of a SEPA direct debit mandate',
+	},
+	{
+		displayName: 'SEPA Mandate Date',
+		name: 'sepa_mandate_date',
+		type: 'dateTime',
+		default: '',
+		description: 'Date of issue of the SEPA direct debit mandate',
+	},
+	{
+		displayName: 'Tax Rule',
+		name: 'tax_rule',
+		type: 'options',
+		options: [
+			{ name: 'Country', value: 'COUNTRY', description: 'Derive from the country code' },
+			{ name: 'No Tax', value: 'NO_TAX' },
+			{ name: 'Tax', value: 'TAX' },
+		],
+		default: 'COUNTRY',
+	},
+];
+
+export const clientFields: INodeProperties[] = [
+	idField(resource, ['delete', 'get', 'update'], {
+		description: 'ID of the client',
+	}),
+	{
+		displayName: 'Name',
+		name: 'name',
+		type: 'string',
+		default: '',
+		displayOptions: {
+			show: {
+				resource: [resource],
+				operation: ['create'],
+			},
+		},
+		description:
+			'Company name. Leave empty and use First Name and Last Name for private clients.',
+	},
+	additionalFields(resource, ['create'], [
+		...addressFieldOptions().filter((field) => field.name !== 'name'),
+		...bankFieldOptions(),
+		...taxIdFieldOptions(),
+		...clientSpecificFieldOptions,
+	]),
+	additionalFields(resource, ['update'], [
+		{
+			displayName: 'Name',
+			name: 'name',
+			type: 'string',
+			default: '',
+			description: 'Company name',
+		},
+		...addressFieldOptions().filter((field) => field.name !== 'name'),
+		...bankFieldOptions(),
+		...taxIdFieldOptions(),
+		...clientSpecificFieldOptions,
+	]),
+	filterFields(resource, [
+		{
+			displayName: 'Client Number',
+			name: 'client_number',
+			type: 'string',
+			default: '',
+		},
+		{
+			displayName: 'Country Code',
+			name: 'country_code',
+			type: 'string',
+			default: '',
+			placeholder: 'DE',
+			description: 'Country as an ISO 3166 Alpha-2 code',
+		},
+		{
+			displayName: 'Email',
+			name: 'email',
+			type: 'string',
+			placeholder: 'name@email.com',
+			default: '',
+		},
+		{
+			displayName: 'First Name',
+			name: 'first_name',
+			type: 'string',
+			default: '',
+			description: 'First name of the contact person',
+		},
+		{
+			displayName: 'Invoice ID',
+			name: 'invoice_id',
+			type: 'string',
+			default: '',
+			description: 'Comma-separated list of invoice IDs to find the clients of',
+		},
+		{
+			displayName: 'Last Name',
+			name: 'last_name',
+			type: 'string',
+			default: '',
+			description: 'Last name of the contact person',
+		},
+		{
+			displayName: 'Name',
+			name: 'name',
+			type: 'string',
+			default: '',
+			description: 'Partial match on the company name, case insensitive',
+		},
+		{
+			displayName: 'Note',
+			name: 'note',
+			type: 'string',
+			default: '',
+		},
+		orderByField,
+		tagsFilterField,
+	]),
+	...paginationFields(resource),
+];

@@ -1,0 +1,189 @@
+import { describe, expect, it } from 'vitest';
+
+import { BillomatTrigger } from '../nodes/BillomatTrigger/BillomatTrigger.node';
+import { BILLOMAT_EVENT_OPTIONS } from '../nodes/BillomatTrigger/events';
+import { createWebhookMock } from './helpers';
+
+const node = new BillomatTrigger();
+
+const INVOICE_BODY = {
+	invoice: { id: '1', invoice_number: 'RE123', contact_id: {} },
+};
+
+describe('event options', () => {
+	it('has no duplicates', () => {
+		const values = BILLOMAT_EVENT_OPTIONS.map((option) => option.value);
+		expect(new Set(values).size).toBe(values.length);
+	});
+
+	it('uses the dotted entity.action form Billomat sends', () => {
+		for (const option of BILLOMAT_EVENT_OPTIONS) {
+			expect(String(option.value)).toMatch(/^[a-z_]+\.[a-z_]+$/);
+		}
+	});
+
+	it('covers the documented core events', () => {
+		const values = BILLOMAT_EVENT_OPTIONS.map((option) => option.value);
+		expect(values).toEqual(
+			expect.arrayContaining([
+				'invoice.create',
+				'invoice.status',
+				'invoice_payment.create',
+				'client.update',
+				'offer.status',
+				'contact.delete',
+			]),
+		);
+	});
+});
+
+describe('webhook', () => {
+	it('unwraps the entity and reports the event', async () => {
+		const context = createWebhookMock({
+			parameters: { authentication: 'none', events: [], options: {} },
+			headers: { 'x-billomat-webhook-event': 'invoice.create' },
+			body: INVOICE_BODY,
+		});
+
+		const result = await node.webhook.call(context);
+
+		expect(result.workflowData?.[0][0].json).toEqual({
+			event: 'invoice.create',
+			resource: 'invoice',
+			data: { id: '1', invoice_number: 'RE123', contact_id: null },
+		});
+	});
+
+	it('passes a selected event through', async () => {
+		const context = createWebhookMock({
+			parameters: {
+				authentication: 'none',
+				events: ['invoice.create', 'invoice.status'],
+				options: {},
+			},
+			headers: { 'x-billomat-webhook-event': 'invoice.status' },
+			body: INVOICE_BODY,
+		});
+
+		const result = await node.webhook.call(context);
+
+		expect(result.workflowData).toBeDefined();
+	});
+
+	it('acknowledges but does not start the workflow for an unselected event', async () => {
+		const context = createWebhookMock({
+			parameters: { authentication: 'none', events: ['invoice.create'], options: {} },
+			headers: { 'x-billomat-webhook-event': 'client.update' },
+			body: { client: { id: '1' } },
+		});
+
+		const result = await node.webhook.call(context);
+
+		// Anything other than 2xx makes Billomat retry and eventually disable the webhook.
+		expect(result.workflowData).toBeUndefined();
+		expect(result.webhookResponse).toBe('OK');
+	});
+
+	it('returns the raw body when asked to', async () => {
+		const context = createWebhookMock({
+			parameters: {
+				authentication: 'none',
+				events: [],
+				options: { rawBody: true },
+			},
+			headers: { 'x-billomat-webhook-event': 'invoice.create' },
+			body: INVOICE_BODY,
+		});
+
+		const result = await node.webhook.call(context);
+
+		expect(result.workflowData?.[0][0].json).toEqual({
+			invoice: { id: '1', invoice_number: 'RE123', contact_id: null },
+		});
+	});
+
+	it('adds the headers when asked to', async () => {
+		const context = createWebhookMock({
+			parameters: {
+				authentication: 'none',
+				events: [],
+				options: { includeHeaders: true },
+			},
+			headers: {
+				'x-billomat-webhook-event': 'invoice.create',
+				'x-billomat-webhook-request-id': '510',
+			},
+			body: INVOICE_BODY,
+		});
+
+		const result = await node.webhook.call(context);
+
+		expect(result.workflowData?.[0][0].json.headers).toMatchObject({
+			'x-billomat-webhook-request-id': '510',
+		});
+	});
+
+	it('points at the JSON setting when the body could not be parsed', async () => {
+		const context = createWebhookMock({
+			parameters: { authentication: 'none', events: [], options: {} },
+			headers: { 'x-billomat-webhook-event': 'invoice.create' },
+			body: {},
+		});
+
+		await expect(node.webhook.call(context)).rejects.toThrow(/JSON/);
+	});
+
+	it('handles a missing event header', async () => {
+		const context = createWebhookMock({
+			parameters: { authentication: 'none', events: [], options: {} },
+			headers: {},
+			body: INVOICE_BODY,
+		});
+
+		const result = await node.webhook.call(context);
+
+		expect(result.workflowData?.[0][0].json.event).toBeNull();
+	});
+});
+
+describe('basic auth', () => {
+	const credentials = { user: 'billo', password: 's3cret' };
+	const valid = 'Basic ' + Buffer.from('billo:s3cret').toString('base64');
+
+	it('accepts a request carrying the configured credentials', async () => {
+		const context = createWebhookMock({
+			parameters: { authentication: 'basicAuth', events: [], options: {} },
+			headers: { authorization: valid, 'x-billomat-webhook-event': 'invoice.create' },
+			body: INVOICE_BODY,
+			credentials,
+		});
+
+		const result = await node.webhook.call(context);
+
+		expect(result.workflowData).toBeDefined();
+	});
+
+	it('rejects a wrong password', async () => {
+		const context = createWebhookMock({
+			parameters: { authentication: 'basicAuth', events: [], options: {} },
+			headers: {
+				authorization: 'Basic ' + Buffer.from('billo:wrong').toString('base64'),
+			},
+			body: INVOICE_BODY,
+			credentials,
+		});
+
+		await expect(node.webhook.call(context)).rejects.toThrow(/Authorization failed/);
+	});
+
+	it('rejects a missing header', async () => {
+		const context = createWebhookMock({
+			parameters: { authentication: 'basicAuth', events: [], options: {} },
+			headers: {},
+			body: INVOICE_BODY,
+			credentials,
+		});
+
+		await expect(node.webhook.call(context)).rejects.toThrow(/Authorization failed/);
+	});
+});
