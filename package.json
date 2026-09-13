@@ -1,6 +1,6 @@
 {
 	"name": "@taurussoftware/n8n-nodes-billomat",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "n8n community node for the Billomat accounting API (clients, invoices, estimates, credit notes, articles, suppliers and more)",
 	"license": "MIT",
 	"homepage": "https://github.com/TaurusSoft/n8n-billomat#readme",
