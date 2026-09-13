@@ -123,6 +123,48 @@ describe('webhook', () => {
 		});
 	});
 
+	it('redacts credential headers so they cannot leak into workflow data', async () => {
+		const context = createWebhookMock({
+			parameters: {
+				authentication: 'basicAuth',
+				events: [],
+				options: { includeHeaders: true },
+			},
+			headers: {
+				authorization: 'Basic ' + Buffer.from('billo:s3cret').toString('base64'),
+				cookie: 'session=abc',
+				'x-billomat-webhook-event': 'invoice.create',
+			},
+			body: INVOICE_BODY,
+			credentials: { user: 'billo', password: 's3cret' },
+		});
+
+		const result = await node.webhook.call(context);
+		const emitted = result.workflowData?.[0][0].json.headers as Record<string, string>;
+
+		expect(emitted.authorization).toBe('[redacted]');
+		expect(emitted.cookie).toBe('[redacted]');
+		expect(emitted['x-billomat-webhook-event']).toBe('invoice.create');
+		expect(JSON.stringify(result.workflowData)).not.toContain('s3cret');
+	});
+
+	it('redacts regardless of header casing', async () => {
+		const context = createWebhookMock({
+			parameters: {
+				authentication: 'none',
+				events: [],
+				options: { includeHeaders: true },
+			},
+			headers: { Authorization: 'Basic c2VjcmV0', 'x-billomat-webhook-event': 'invoice.create' },
+			body: INVOICE_BODY,
+		});
+
+		const result = await node.webhook.call(context);
+		const emitted = result.workflowData?.[0][0].json.headers as Record<string, string>;
+
+		expect(emitted.Authorization).toBe('[redacted]');
+	});
+
 	it('points at the JSON setting when the body could not be parsed', async () => {
 		const context = createWebhookMock({
 			parameters: { authentication: 'none', events: [], options: {} },

@@ -43,6 +43,33 @@ describe('BillomatApi', () => {
 		expect(result.headers).not.toHaveProperty('X-AppSecret');
 	});
 
+	it('treats whitespace-only app values as unset', async () => {
+		const result = await authenticate({
+			billomatId: 'acme',
+			apiKey: 'secret',
+			appId: '   ',
+			appSecret: '\t',
+		});
+
+		expect(result.headers).not.toHaveProperty('X-AppId');
+		expect(result.headers).not.toHaveProperty('X-AppSecret');
+	});
+
+	it('trims pasted values', async () => {
+		const result = await authenticate({
+			billomatId: 'acme',
+			apiKey: '  secret\n',
+			appId: ' app-1 ',
+			appSecret: ' app-secret ',
+		});
+
+		expect(result.headers).toMatchObject({
+			'X-BillomatApiKey': 'secret',
+			'X-AppId': 'app-1',
+			'X-AppSecret': 'app-secret',
+		});
+	});
+
 	it('sends the app headers that raise the rate limit when both are set', async () => {
 		const result = await authenticate({
 			billomatId: 'acme',

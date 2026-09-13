@@ -138,13 +138,31 @@ export class BillomatTrigger implements INodeType {
 			: unwrapWebhookBody(body as IDataObject, event);
 
 		if (options.includeHeaders) {
-			json.headers = headers;
+			json.headers = redactSecretHeaders(headers);
 		}
 
 		return {
 			workflowData: [[{ json }]],
 		};
 	}
+}
+
+/**
+ * Headers that carry credentials and must never reach workflow data, where they would
+ * also end up in execution logs. When basic auth is configured, `authorization` holds
+ * exactly the user and password of the webhook, only base64 encoded.
+ *
+ * Node lowercases incoming header names, but the comparison is case-insensitive anyway
+ * so this keeps working if that ever changes or a proxy rewrites them.
+ */
+const SECRET_HEADERS = ['authorization', 'proxy-authorization', 'cookie'];
+
+function redactSecretHeaders(headers: IDataObject): IDataObject {
+	return Object.fromEntries(
+		Object.entries(headers).map(([name, value]) =>
+			SECRET_HEADERS.includes(name.toLowerCase()) ? [name, '[redacted]'] : [name, value],
+		),
+	);
 }
 
 /**

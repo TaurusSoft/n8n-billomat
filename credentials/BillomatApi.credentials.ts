@@ -64,16 +64,22 @@ export class BillomatApi implements ICredentialType {
 		credentials: ICredentialDataDecryptedObject,
 		requestOptions: IHttpRequestOptions,
 	): Promise<IHttpRequestOptions> => {
+		// Everything is trimmed: keys are usually pasted, and a stray space would either
+		// break authentication outright or, for the app headers, count as "set" and send
+		// a value Billomat cannot attribute.
 		const headers: Record<string, string> = {
-			'X-BillomatApiKey': credentials.apiKey as string,
+			'X-BillomatApiKey': String(credentials.apiKey ?? '').trim(),
 		};
 
-		if (credentials.appId) {
-			headers['X-AppId'] = credentials.appId as string;
+		const appId = String(credentials.appId ?? '').trim();
+		const appSecret = String(credentials.appSecret ?? '').trim();
+
+		if (appId !== '') {
+			headers['X-AppId'] = appId;
 		}
 
-		if (credentials.appSecret) {
-			headers['X-AppSecret'] = credentials.appSecret as string;
+		if (appSecret !== '') {
+			headers['X-AppSecret'] = appSecret;
 		}
 
 		return {
