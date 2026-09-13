@@ -142,14 +142,31 @@ export class BillomatTrigger implements INodeType {
 				credential: ICredentialsDecrypted,
 			): Promise<INodeCredentialTestResult> {
 				const data = credential.data ?? {};
-				const user = String(data.user ?? '').trim();
-				const password = String(data.password ?? '').trim();
+				// Compared verbatim at runtime, so they are never trimmed here either:
+				// spaces are legal in a basic auth password.
+				const user = String(data.user ?? '');
+				const password = String(data.password ?? '');
 
-				if (user === '' || password === '') {
+				if (user.trim() === '' || password.trim() === '') {
 					return {
 						status: 'Error',
 						message:
 							'Enter the user and password exactly as you set them for the webhook in Billomat under Settings > Webhooks.',
+					};
+				}
+
+				// Surrounding whitespace is invisible in the UI and survives a paste, but
+				// the comparison is byte for byte, so it would only surface as a failing
+				// webhook later. Legal in a password, so flag it rather than reject it.
+				const padded = [
+					user !== user.trim() ? 'user' : undefined,
+					password !== password.trim() ? 'password' : undefined,
+				].filter(Boolean);
+
+				if (padded.length > 0) {
+					return {
+						status: 'OK',
+						message: `Saved, but the ${padded.join(' and ')} starts or ends with a space. That is allowed, and it is compared exactly as entered, so Billomat must have the same spaces or the webhook will be rejected.`,
 					};
 				}
 

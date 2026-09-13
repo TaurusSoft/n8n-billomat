@@ -427,9 +427,13 @@ export class Billomat implements INodeType {
 
 				returnData.push({ json: responseData, pairedItem: { item: i } });
 			} catch (error) {
+				// Not everything thrown in JS is an Error, and a non-Error would leave
+				// `.message` undefined, hiding the original failure behind a blank message.
+				const message = error instanceof Error ? error.message : String(error);
+
 				if (this.continueOnFail()) {
 					returnData.push({
-						json: { error: (error as Error).message },
+						json: { error: message },
 						pairedItem: { item: i },
 					});
 					continue;
@@ -439,7 +443,6 @@ export class Billomat implements INodeType {
 				// item index. `message` is carried over explicitly: billomatApiRequest has
 				// already put Billomat's own wording there, and the parameter checks above
 				// produce messages worth keeping too.
-				const message = (error as Error).message;
 
 				if (error instanceof NodeOperationError) {
 					throw new NodeOperationError(this.getNode(), message, { itemIndex: i });

@@ -44,6 +44,26 @@ describe('credential test', () => {
 
 		expect(result.status).toBe('Error');
 	});
+
+	// The runtime check compares byte for byte, so padding must be surfaced rather than
+	// silently accepted — but it is legal in a password, so it must not be an error.
+	it('accepts padded values but warns about them', async () => {
+		const result = await test.call({} as never, {
+			data: { user: ' billo', password: 's3cret ' },
+		} as never);
+
+		expect(result.status).toBe('OK');
+		expect(result.message).toMatch(/user and password starts or ends with a space/i);
+	});
+
+	it('names only the padded half', async () => {
+		const result = await test.call({} as never, {
+			data: { user: 'billo', password: 's3cret ' },
+		} as never);
+
+		expect(result.message).toMatch(/the password starts or ends with a space/i);
+		expect(result.message).not.toMatch(/user/i);
+	});
 });
 
 describe('event options', () => {
