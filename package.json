@@ -1,9 +1,9 @@
 {
-	"name": "n8n-nodes-billomat",
+	"name": "@taurussoftware/n8n-nodes-billomat",
 	"version": "0.1.0",
 	"description": "n8n community node for the Billomat accounting API (clients, invoices, estimates, credit notes, articles, suppliers and more)",
 	"license": "MIT",
-	"homepage": "https://github.com/martinhey/n8n-nodes-billomat",
+	"homepage": "https://github.com/TaurusSoft/n8n-billomat#readme",
 	"keywords": [
 		"n8n-community-node-package",
 		"billomat",
@@ -14,11 +14,14 @@
 	],
 	"author": {
 		"name": "Martin Hey",
-		"email": "martinhey@gmx.de"
+		"email": "info@taurussoftware.de"
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/martinhey/n8n-nodes-billomat.git"
+		"url": "git+https://github.com/TaurusSoft/n8n-billomat.git"
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"engines": {
 		"node": ">=22"

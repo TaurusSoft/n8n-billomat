@@ -8,17 +8,17 @@ import type { Icon, ICredentialType, INodeProperties } from 'n8n-workflow';
  * `httpBasicAuth`: community nodes may only reference credentials declared in their own
  * package.
  *
- * There is nothing to test these against: they are checked on incoming requests rather
- * than sent anywhere, so the credential has no `test` request.
+ * There is no `test` request here: these values are compared against incoming requests
+ * rather than sent anywhere, so there is no endpoint to call. The Billomat Trigger node
+ * checks them through `testedBy` instead.
  */
-// eslint-disable-next-line @n8n/community-nodes/credential-test-required
 export class BillomatWebhookAuthApi implements ICredentialType {
 	name = 'billomatWebhookAuthApi';
 
 	displayName = 'Billomat Webhook Auth API';
 
 	documentationUrl =
-		'https://github.com/martinhey/n8n-nodes-billomat?tab=readme-ov-file#billomat-trigger';
+		'https://github.com/TaurusSoft/n8n-billomat?tab=readme-ov-file#billomat-trigger';
 
 	icon: Icon = {
 		light: 'file:../nodes/Billomat/billomat.svg',

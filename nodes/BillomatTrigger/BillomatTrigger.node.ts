@@ -1,5 +1,9 @@
 import type {
+	ICredentialsDecrypted,
+	ICredentialTestFunctions,
 	IDataObject,
+	IHookFunctions,
+	INodeCredentialTestResult,
 	INodeType,
 	INodeTypeDescription,
 	IWebhookFunctions,
@@ -10,12 +14,6 @@ import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 import { normalizeEmptyValues } from '../Billomat/GenericFunctions';
 import { BILLOMAT_EVENT_OPTIONS } from './events';
 
-/**
- * Billomat exposes no API for managing webhooks. They are entered by hand under
- * Settings > Webhooks in the Billomat UI, which is why this node cannot implement the
- * usual `webhookMethods` lifecycle and uses a static webhook URL instead.
- */
-// eslint-disable-next-line @n8n/community-nodes/webhook-lifecycle-complete
 export class BillomatTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Billomat Trigger',
@@ -34,6 +32,7 @@ export class BillomatTrigger implements INodeType {
 			{
 				name: 'billomatWebhookAuthApi',
 				required: true,
+				testedBy: 'billomatWebhookAuthTest',
 				displayOptions: {
 					show: {
 						authentication: ['basicAuth'],
@@ -103,6 +102,64 @@ export class BillomatTrigger implements INodeType {
 				],
 			},
 		],
+	};
+
+	/**
+	 * Billomat has no API for managing webhooks: they are entered by hand under
+	 * Settings > Webhooks in the Billomat UI and there is no endpoint to list, create or
+	 * remove them. The lifecycle therefore reports the webhook as already present so n8n
+	 * does not try to register one, and activating or deactivating the workflow never
+	 * changes anything on the Billomat side.
+	 *
+	 * The practical consequence for users: deactivating the workflow does not stop
+	 * Billomat from sending. Remove the webhook in Billomat itself to do that.
+	 */
+	webhookMethods = {
+		default: {
+			async checkExists(this: IHookFunctions): Promise<boolean> {
+				return true;
+			},
+
+			async create(this: IHookFunctions): Promise<boolean> {
+				return true;
+			},
+
+			async delete(this: IHookFunctions): Promise<boolean> {
+				return true;
+			},
+		},
+	};
+
+	methods = {
+		credentialTest: {
+			/**
+			 * These credentials are compared against incoming requests rather than sent
+			 * anywhere, so there is nothing to call. Check that both halves are filled in
+			 * and tell the user what the test can and cannot establish.
+			 */
+			async billomatWebhookAuthTest(
+				this: ICredentialTestFunctions,
+				credential: ICredentialsDecrypted,
+			): Promise<INodeCredentialTestResult> {
+				const data = credential.data ?? {};
+				const user = String(data.user ?? '').trim();
+				const password = String(data.password ?? '').trim();
+
+				if (user === '' || password === '') {
+					return {
+						status: 'Error',
+						message:
+							'Enter the user and password exactly as you set them for the webhook in Billomat under Settings > Webhooks.',
+					};
+				}
+
+				return {
+					status: 'OK',
+					message:
+						'Saved. These values are checked against incoming webhook requests. Billomat offers no endpoint to verify them, so make sure they match what you entered there.',
+				};
+			},
+		},
 	};
 
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {

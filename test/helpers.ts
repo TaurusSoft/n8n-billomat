@@ -51,7 +51,7 @@ export function createExecuteMock(options: ExecuteMockOptions): ExecuteMock {
 
 	const context = {
 		getInputData: () => items,
-		getNode: () => ({ name: 'Billomat', type: 'n8n-nodes-billomat.billomat' }),
+		getNode: () => ({ name: 'Billomat', type: '@taurussoftware/n8n-nodes-billomat.billomat' }),
 		continueOnFail: () => options.continueOnFail ?? false,
 		getCredentials: async () => options.credentials ?? DEFAULT_CREDENTIALS,
 		getNodeParameter: (name: string, itemIndex?: number, fallback?: unknown) => {
@@ -100,7 +100,7 @@ export function createWebhookMock(options: WebhookMockOptions): IWebhookFunction
 	return {
 		getHeaderData: () => options.headers ?? {},
 		getBodyData: () => options.body ?? {},
-		getNode: () => ({ name: 'Billomat Trigger', type: 'n8n-nodes-billomat.billomatTrigger' }),
+		getNode: () => ({ name: 'Billomat Trigger', type: '@taurussoftware/n8n-nodes-billomat.billomatTrigger' }),
 		getCredentials: async () => options.credentials ?? { user: 'u', password: 'p' },
 		getNodeParameter: (name: string, fallback?: unknown) => {
 			if (!(name in options.parameters)) {

@@ -10,6 +10,42 @@ const INVOICE_BODY = {
 	invoice: { id: '1', invoice_number: 'RE123', contact_id: {} },
 };
 
+describe('webhook lifecycle', () => {
+	// Billomat has no API to register webhooks, so the lifecycle is a no-op that
+	// reports the webhook as present. These assertions pin that down: a `create`
+	// returning false would make n8n refuse to activate the workflow.
+	it('reports the manually configured webhook as existing', async () => {
+		const hooks = node.webhookMethods.default;
+
+		expect(await hooks.checkExists.call({} as never)).toBe(true);
+		expect(await hooks.create.call({} as never)).toBe(true);
+		expect(await hooks.delete.call({} as never)).toBe(true);
+	});
+});
+
+describe('credential test', () => {
+	const test = node.methods.credentialTest.billomatWebhookAuthTest;
+
+	it('accepts a complete pair and says what it cannot verify', async () => {
+		const result = await test.call({} as never, {
+			data: { user: 'billo', password: 's3cret' },
+		} as never);
+
+		expect(result.status).toBe('OK');
+		expect(result.message).toMatch(/no endpoint to verify/i);
+	});
+
+	it.each([
+		['missing password', { user: 'billo', password: '' }],
+		['missing user', { user: '', password: 's3cret' }],
+		['whitespace only', { user: '  ', password: '\t' }],
+	])('rejects %s', async (_label, data) => {
+		const result = await test.call({} as never, { data } as never);
+
+		expect(result.status).toBe('Error');
+	});
+});
+
 describe('event options', () => {
 	it('has no duplicates', () => {
 		const values = BILLOMAT_EVENT_OPTIONS.map((option) => option.value);

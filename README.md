@@ -1,4 +1,4 @@
-# n8n-nodes-billomat
+# @taurussoftware/n8n-nodes-billomat
 
 An [n8n](https://n8n.io) community node for [Billomat](https://www.billomat.com), the German
 invoicing and accounting service. It covers the document side of the Billomat REST API —
@@ -15,13 +15,13 @@ plus a trigger node for Billomat webhooks.
 
 1. Open **Settings → Community Nodes**.
 2. Choose **Install**.
-3. Enter `n8n-nodes-billomat` and confirm that you understand the risks of installing
+3. Enter `@taurussoftware/n8n-nodes-billomat` and confirm that you understand the risks of installing
    community nodes.
 
 ### Manually
 
 ```bash
-npm install n8n-nodes-billomat
+npm install @taurussoftware/n8n-nodes-billomat
 ```
 
 Restart n8n afterwards. See the
@@ -152,6 +152,11 @@ Setup:
    credentials; requests without them are then rejected.
 5. Activate the workflow. Test URLs only exist while the canvas is listening, so the URL you
    store in Billomat should be the production one.
+
+Because the webhook lives entirely on the Billomat side, **deactivating the workflow does not
+stop Billomat from sending**. n8n will simply answer with an error, and after the retries
+described below Billomat disables the webhook and emails the account owner. If you want to
+pause the integration, remove or disable the webhook in Billomat instead.
 
 ### Events
 
